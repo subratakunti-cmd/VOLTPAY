@@ -1,0 +1,6 @@
+{
+  "name": "VoltPay — Mobile Recharge & Prepaid Plans",
+  "description": "Fast prepaid mobile recharge, carrier plan comparison, promo discounts, and digital receipts.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

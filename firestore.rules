@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isSignedIn()
+        && request.auth.uid == userId
+        && request.auth.token.email_verified == true;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'walletBalance', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'walletBalance', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid == userId
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && data.walletBalance is number && data.walletBalance >= 0 && data.walletBalance <= 1000000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidContact(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'nickname', 'label', 'phoneNumber', 'region',
+          'carrierId', 'circle', 'autoReminder', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'nickname', 'label', 'phoneNumber', 'region',
+          'carrierId', 'circle', 'autoReminder', 'lastRechargedAt', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId == userId
+        && data.nickname is string && data.nickname.size() >= 1 && data.nickname.size() <= 40
+        && data.label is string && data.label.size() <= 20 && data.label in ['Personal', 'Work', 'Family', 'Data SIM']
+        && data.phoneNumber is string && data.phoneNumber.size() == 10 && data.phoneNumber.matches('^[0-9]{10}$')
+        && data.region is string && data.region.size() == 2 && data.region == 'IN'
+        && data.carrierId is string && data.carrierId.size() <= 20 && data.carrierId in ['jio', 'airtel', 'vi', 'bsnl']
+        && data.circle is string && data.circle.size() >= 1 && data.circle.size() <= 60
+        && data.autoReminder is bool
+        && (!('lastRechargedAt' in data) || (data.lastRechargedAt is string && data.lastRechargedAt.size() <= 40))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTransaction(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'referenceCode', 'carrierAuthCode', 'phoneNumber', 'region',
+          'carrierId', 'circle', 'planTitle', 'planMeta', 'amount', 'discount',
+          'totalPaid', 'paymentMethod', 'paymentLabel', 'status', 'createdAtIso', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'referenceCode', 'carrierAuthCode', 'phoneNumber', 'region',
+          'carrierId', 'circle', 'planTitle', 'planMeta', 'amount', 'discount',
+          'totalPaid', 'promoApplied', 'paymentMethod', 'paymentLabel', 'status', 'createdAtIso', 'createdAt'
+        ])
+        && data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 && data.userId == userId
+        && data.referenceCode is string && data.referenceCode.size() >= 4 && data.referenceCode.size() <= 32
+        && data.carrierAuthCode is string && data.carrierAuthCode.size() >= 4 && data.carrierAuthCode.size() <= 32
+        && data.phoneNumber is string && data.phoneNumber.size() == 10 && data.phoneNumber.matches('^[0-9]{10}$')
+        && data.region is string && data.region.size() == 2 && data.region == 'IN'
+        && data.carrierId is string && data.carrierId.size() <= 20 && data.carrierId in ['jio', 'airtel', 'vi', 'bsnl']
+        && data.circle is string && data.circle.size() >= 1 && data.circle.size() <= 60
+        && data.planTitle is string && data.planTitle.size() >= 1 && data.planTitle.size() <= 80
+        && data.planMeta is string && data.planMeta.size() >= 1 && data.planMeta.size() <= 160
+        && data.amount is number && data.amount > 0 && data.amount <= 50000
+        && data.discount is number && data.discount >= 0 && data.discount <= 50000
+        && data.totalPaid is number && data.totalPaid >= 0 && data.totalPaid <= 50000
+        && (!('promoApplied' in data) || (data.promoApplied is string && data.promoApplied.size() <= 24))
+        && data.paymentMethod is string && data.paymentMethod.size() <= 20 && data.paymentMethod in ['wallet', 'upi', 'card']
+        && data.paymentLabel is string && data.paymentLabel.size() >= 1 && data.paymentLabel.size() <= 80
+        && data.status is string && data.status.size() <= 20 && data.status in ['Success', 'Pending', 'Failed']
+        && data.createdAtIso is string && data.createdAtIso.size() >= 10 && data.createdAtIso.size() <= 40
+        && data.createdAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow list: if false;
+      allow create: if isVerifiedOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['walletBalance', 'updatedAt'])
+          || incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt'])
+        );
+      allow delete: if false;
+
+      match /contacts/{contactId} {
+        allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidId(contactId);
+        allow list: if isSignedIn() && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(contactId)
+          && isValidContact(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(contactId)
+          && isValidContact(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['autoReminder', 'updatedAt'])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['lastRechargedAt', 'updatedAt'])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['nickname', 'label', 'carrierId', 'circle', 'updatedAt'])
+          );
+        allow delete: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(contactId);
+      }
+
+      match /transactions/{txId} {
+        allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidId(txId);
+        allow list: if isSignedIn() && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+        allow create: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(txId)
+          && isValidTransaction(incoming(), userId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update, delete: if false;
+      }
+    }
+  }
+}

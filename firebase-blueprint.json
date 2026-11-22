@@ -1,0 +1,257 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user account and VoltPay INR wallet balance.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the account owner.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified email address of the user.",
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the user.",
+          "maxLength": 100
+        },
+        "walletBalance": {
+          "type": "number",
+          "description": "Current INR wallet balance."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last update timestamp."
+        }
+      },
+      "required": ["uid", "email", "displayName", "walletBalance", "createdAt", "updatedAt"]
+    },
+    "SavedContact": {
+      "title": "SavedContact",
+      "description": "Saved Indian prepaid mobile line belonging to a user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "nickname": {
+          "type": "string",
+          "description": "User-assigned label for the line.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "label": {
+          "type": "string",
+          "enum": ["Personal", "Work", "Family", "Data SIM"],
+          "description": "Contact group category."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "10-digit Indian mobile number.",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{10}$"
+        },
+        "region": {
+          "type": "string",
+          "enum": ["IN"],
+          "description": "Region code."
+        },
+        "carrierId": {
+          "type": "string",
+          "enum": ["jio", "airtel", "vi", "bsnl"],
+          "description": "Telecom operator identifier."
+        },
+        "circle": {
+          "type": "string",
+          "description": "Telecom circle name.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "autoReminder": {
+          "type": "boolean",
+          "description": "Whether expiry reminder is enabled."
+        },
+        "lastRechargedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last recharge.",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "userId",
+        "nickname",
+        "label",
+        "phoneNumber",
+        "region",
+        "carrierId",
+        "circle",
+        "autoReminder",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RechargeTransaction": {
+      "title": "RechargeTransaction",
+      "description": "Immutable prepaid recharge transaction record for a user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "referenceCode": {
+          "type": "string",
+          "description": "VoltPay transaction reference code.",
+          "minLength": 4,
+          "maxLength": 32
+        },
+        "carrierAuthCode": {
+          "type": "string",
+          "description": "Operator confirmation reference.",
+          "minLength": 4,
+          "maxLength": 32
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "10-digit Indian mobile number.",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{10}$"
+        },
+        "region": {
+          "type": "string",
+          "enum": ["IN"],
+          "description": "Region code."
+        },
+        "carrierId": {
+          "type": "string",
+          "enum": ["jio", "airtel", "vi", "bsnl"],
+          "description": "Telecom operator identifier."
+        },
+        "circle": {
+          "type": "string",
+          "description": "Telecom circle name.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "planTitle": {
+          "type": "string",
+          "description": "Plan or custom top-up title.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "planMeta": {
+          "type": "string",
+          "description": "Plan allowance summary.",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "amount": {
+          "type": "number",
+          "description": "Base plan price in INR."
+        },
+        "discount": {
+          "type": "number",
+          "description": "Promo discount applied in INR."
+        },
+        "totalPaid": {
+          "type": "number",
+          "description": "Final amount paid in INR."
+        },
+        "promoApplied": {
+          "type": "string",
+          "description": "Optional promo code applied.",
+          "maxLength": 24
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["wallet", "upi", "card"],
+          "description": "Payment channel used."
+        },
+        "paymentLabel": {
+          "type": "string",
+          "description": "Human-readable payment label.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Success", "Pending", "Failed"],
+          "description": "Transaction status."
+        },
+        "createdAtIso": {
+          "type": "string",
+          "description": "ISO string for display formatting.",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        }
+      },
+      "required": [
+        "userId",
+        "referenceCode",
+        "carrierAuthCode",
+        "phoneNumber",
+        "region",
+        "carrierId",
+        "circle",
+        "planTitle",
+        "planMeta",
+        "amount",
+        "discount",
+        "totalPaid",
+        "paymentMethod",
+        "paymentLabel",
+        "status",
+        "createdAtIso",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile and INR wallet balance scoped strictly to the owner."
+    },
+    "/users/{userId}/contacts/{contactId}": {
+      "schema": { "$ref": "#/entities/SavedContact" },
+      "description": "Saved prepaid mobile lines owned by the user."
+    },
+    "/users/{userId}/transactions/{txId}": {
+      "schema": { "$ref": "#/entities/RechargeTransaction" },
+      "description": "Immutable prepaid recharge transaction receipts owned by the user."
+    }
+  }
+}
